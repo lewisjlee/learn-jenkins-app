@@ -30,8 +30,8 @@ pipeline {
             steps{
                 echo 'Test stage'
                 sh '''
-                    test -f build/index.html // index.html 파일이 존재하는지 확인
-                    npm test // 소스코드 테스트트
+                    test -f build/index.html # index.html 파일이 존재하는지 확인
+                    npm test # 소스코드 테스트
                 '''
             }
         }
