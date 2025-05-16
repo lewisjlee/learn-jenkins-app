@@ -47,7 +47,8 @@ pipeline {
                 echo 'Test stage'
                 sh '''
                     npm install serve
-                    node_modules/.bin/serve -s build
+                    node_modules/.bin/serve -s build &
+                    sleep 10 # 앞선 빌드가 완료될 때까지 대기하는 시간
                     npx playwright test
                 '''
             }
