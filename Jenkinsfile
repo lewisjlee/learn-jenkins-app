@@ -49,7 +49,7 @@ pipeline {
                     npm install serve
                     node_modules/.bin/serve -s build &
                     sleep 10 # 앞선 빌드가 완료될 때까지 대기하는 시간
-                    npx playwright test # E2E Test 수행
+                    npx playwright test --reporter=html # E2E Test 수행
                 '''
             }
         }
