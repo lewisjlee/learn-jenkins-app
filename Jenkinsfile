@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NETLIFY_PROJECT_ID = '1fff8fc0-39ca-457a-95ae-91081bc6a1a8'
+        NETLIFY_SITE_ID = '1fff8fc0-39ca-457a-95ae-91081bc6a1a8' // netlify 사이트 아이디를 저장하는 로컬 환경 변수
         NETLIFY_AUTH_TOKEN = credentials('netlify-token')
     }
 
