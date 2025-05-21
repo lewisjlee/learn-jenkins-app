@@ -6,6 +6,7 @@ pipeline {
         NETLIFY_AUTH_TOKEN = credentials('netlify-token')
     }
 
+    // 애플리케이션 빌드
     stages {
         stage('Build') {
             agent {
@@ -26,6 +27,8 @@ pipeline {
                 '''
             }
         }
+
+        // local 테스트 병렬 실행
         stage('Tests'){
             parallel {
                 stage('Unit test'){
@@ -75,7 +78,27 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        // Prod 배포 전 Stage 환경에 배포
+        stage('Deploy Stage') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh '''
+                    npm install netlify-cli@20.1.1
+                    node_modules/.bin/netlify --version
+                    echo "Deploying to production. Site ID : $NETLIFY_SITE_ID"
+                    node_modules/.bin/netlify status
+                    node_modules/.bin/netlify deploy --dir=build # Stage용 임시 환경에 배포
+                '''
+            }
+        }
+
+        // Prod 환경에 배포
+        stage('Deploy Prod') {
             agent {
                 docker {
                     image 'node:18-alpine'
@@ -92,6 +115,8 @@ pipeline {
                 '''
             }
         }
+
+        // Prod 환경에서 E2E 테스트
         stage('Prod E2E'){
             agent {
                 docker {
