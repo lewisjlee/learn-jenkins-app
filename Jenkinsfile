@@ -68,7 +68,7 @@ pipeline {
                     post {
                         always {
                             // Playwright E2E 테스트에 대한 HTML Report
-                                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright Local', reportTitles: '', useWrapperFileDirectly: true])
                             }
                     }
                 }
@@ -90,6 +90,31 @@ pipeline {
                     node_modules/.bin/netlify status
                     node_modules/.bin/netlify deploy --dir=build --prod # Prod 환경의 build 디렉토리에 배포
                 '''
+            }
+        }
+        stage('Prod E2E'){
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.52.0-noble'
+                    reuseNode true
+                }
+            }
+            // E2E 테스트를 수행할 Prod 환경 URL
+            environment{
+                CI_ENVIRONMENT_URL = 'https://fluffy-yeot-2c6d6e.netlify.app'
+            }
+
+            steps{
+                echo 'Test stage'
+                sh '''
+                    npx playwright test --reporter=html # E2E Test 수행
+                '''
+            }
+            post {
+                always {
+                    // Playwright E2E 테스트에 대한 HTML Report
+                        publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright E2E', reportTitles: '', useWrapperFileDirectly: true])
+                }
             }
         }
     }
