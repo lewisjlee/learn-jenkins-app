@@ -100,7 +100,7 @@ pipeline {
         // Prod 배포 전 최종 검토 및 승인
         stage('Approval to deploy to Prod'){
             steps{
-                timeout(1) {
+                timeout(time: 1, unit: 'HOURS') {
                 input cancel: 'No', message: 'Prod 환경에 최종 배포합니다.', ok: 'Yes'
                 }
             }
