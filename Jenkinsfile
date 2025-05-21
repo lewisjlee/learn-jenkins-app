@@ -97,6 +97,13 @@ pipeline {
             }
         }
 
+        // Prod 배포 전 최종 검토 및 승인
+        stage('Approval to deploy to Prod'){
+            timeout(1) {
+                input cancel: 'No', message: 'Prod 환경에 최종 배포합니다.', ok: 'Yes'
+            }
+        }
+
         // Prod 환경에 배포
         stage('Deploy Prod') {
             agent {
