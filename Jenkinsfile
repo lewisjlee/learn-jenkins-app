@@ -88,11 +88,12 @@ pipeline {
             }
             steps {
                 sh '''
-                    npm install netlify-cli@20.1.1
+                    npm install netlify-cli@20.1.1 node-jq
                     node_modules/.bin/netlify --version
                     echo "Deploying to production. Site ID : $NETLIFY_SITE_ID"
                     node_modules/.bin/netlify status
-                    node_modules/.bin/netlify deploy --dir=build # Stage용 임시 환경에 배포
+                    node_modules/.bin/netlify deploy --dir=build --json > json-output.json # Stage용 임시 환경에 배포 및 json 파일 추출
+                    node_modules/.bin/node-jq -r '.deploy_url' json-output.json # 추출한 json 파일의 deploy_url의 value 출력
                 '''
             }
         }
