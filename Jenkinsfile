@@ -9,6 +9,18 @@ pipeline {
 
     // 애플리케이션 빌드
     stages {
+        stage('AWS'){
+            agent {
+                docker {
+                    image 'amazon/aws-cli'
+                }
+            }
+            steps {
+                sh '''
+                    aws --version
+                '''
+            }
+        }
         stage('Build') {
             agent {
                 docker { // 에이전트에 nodejs 컨테이너 실행
