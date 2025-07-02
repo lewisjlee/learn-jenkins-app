@@ -93,11 +93,11 @@ pipeline {
                     reuseNode true
                 }
             }
-/*            // E2E 테스트를 수행할 Prod 환경 URL
+            // E2E 테스트를 수행할 URL 환경 변수
             environment{
-                CI_ENVIRONMENT_URL = "${env.STAGE_URL}"
+                CI_ENVIRONMENT_URL = "my-stage-url"
             }
-*/
+
 
             steps{
                 echo 'Test stage'
