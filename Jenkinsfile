@@ -9,12 +9,6 @@ pipeline {
 
     // 애플리케이션 빌드
     stages {
-        stage('Docker image build'){
-            steps{
-                sh 'docker build -t my-node-playwright .'
-            }
-        }
-
         stage('Build') {
             agent {
                 docker { // 에이전트에 nodejs 컨테이너 실행
