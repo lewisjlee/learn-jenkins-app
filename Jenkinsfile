@@ -93,10 +93,11 @@ pipeline {
                     reuseNode true
                 }
             }
-            // E2E 테스트를 수행할 Prod 환경 URL
+/*            // E2E 테스트를 수행할 Prod 환경 URL
             environment{
                 CI_ENVIRONMENT_URL = "${env.STAGE_URL}"
             }
+*/
 
             steps{
                 echo 'Test stage'
@@ -105,7 +106,7 @@ pipeline {
                     echo "Deploying to production. Site ID : $NETLIFY_SITE_ID"
                     netlify status
                     netlify deploy --dir=build --json > json-output.json # Stage용 임시 환경에 배포 및 json 파일 추출
-                    CI_ENVIRONMENT_URL=$(node_modules/.bin/node-jq -r '.deploy_url' json-output.json) # 추출한 json 파일의 deploy_url의 value 출력
+                    CI_ENVIRONMENT_URL=$(node-jq -r '.deploy_url' json-output.json) # 추출한 json 파일의 deploy_url의 value 출력
                     npx playwright test --reporter=html # E2E Test 수행
                 '''
             }
