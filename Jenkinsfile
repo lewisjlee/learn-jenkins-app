@@ -95,6 +95,35 @@ pipeline {
                     node_modules/.bin/netlify deploy --dir=build --json > json-output.json # Stage용 임시 환경에 배포 및 json 파일 추출
                     node_modules/.bin/node-jq -r '.deploy_url' json-output.json # 추출한 json 파일의 deploy_url의 value 출력
                 '''
+                script{
+                    env.STAGE_URL = sh(script: "node_modules/.bin/node-jq -r '.deploy_url' json-output.json", returnStdout: true)
+                }
+            }
+        }
+
+        stage('Stage E2E'){
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.52.0-noble'
+                    reuseNode true
+                }
+            }
+            // E2E 테스트를 수행할 Prod 환경 URL
+            environment{
+                CI_ENVIRONMENT_URL = "${env.STAGE_URL}"
+            }
+
+            steps{
+                echo 'Test stage'
+                sh '''
+                    npx playwright test --reporter=html # E2E Test 수행
+                '''
+            }
+            post {
+                always {
+                    // Playwright E2E 테스트에 대한 HTML Report
+                        publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Stage E2E', reportTitles: '', useWrapperFileDirectly: true])
+                }
             }
         }
 
@@ -148,7 +177,7 @@ pipeline {
             post {
                 always {
                     // Playwright E2E 테스트에 대한 HTML Report
-                        publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright E2E', reportTitles: '', useWrapperFileDirectly: true])
+                        publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Prod E2E', reportTitles: '', useWrapperFileDirectly: true])
                 }
             }
         }
