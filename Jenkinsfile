@@ -136,27 +136,8 @@ pipeline {
             }
         }
 
-        // Prod 환경에 배포
-        stage('Deploy Prod') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
-            steps {
-                sh '''
-                    npm install netlify-cli@20.1.1
-                    node_modules/.bin/netlify --version
-                    echo "Deploying to production. Site ID : $NETLIFY_SITE_ID"
-                    node_modules/.bin/netlify status
-                    node_modules/.bin/netlify deploy --dir=build --prod # Prod 환경의 build 디렉토리에 배포
-                '''
-            }
-        }
-
-        // Prod 환경에서 E2E 테스트
-        stage('Prod E2E'){
+        // Prod 환경에 배포 및 E2E 테스트
+        stage('Deploy to Prod and E2E'){
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.52.0-noble'
@@ -171,6 +152,12 @@ pipeline {
             steps{
                 echo 'Test stage'
                 sh '''
+                    node --version
+                    npm install netlify-cli@20.1.1
+                    node_modules/.bin/netlify --version
+                    echo "Deploying to production. Site ID : $NETLIFY_SITE_ID"
+                    node_modules/.bin/netlify status
+                    node_modules/.bin/netlify deploy --dir=build --prod # Prod 환경의 build 디렉토리에 배포
                     npx playwright test --reporter=html # E2E Test 수행
                 '''
             }
