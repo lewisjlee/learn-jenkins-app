@@ -9,6 +9,12 @@ pipeline {
 
     // 애플리케이션 빌드
     stages {
+        stage('Docker image build'){
+            steps{
+                sh 'docker build -t my-node-playwright .'
+            }
+        }
+
         stage('Build') {
             agent {
                 docker { // 에이전트에 nodejs 컨테이너 실행
@@ -83,7 +89,7 @@ pipeline {
         stage('Deploy to Stage and E2E'){
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.52.0-noble'
+                    image 'my-node-playwright'
                     reuseNode true
                 }
             }
@@ -95,11 +101,10 @@ pipeline {
             steps{
                 echo 'Test stage'
                 sh '''
-                    npm install netlify-cli@20.1.1 node-jq
-                    node_modules/.bin/netlify --version
+                    netlify --version
                     echo "Deploying to production. Site ID : $NETLIFY_SITE_ID"
-                    node_modules/.bin/netlify status
-                    node_modules/.bin/netlify deploy --dir=build --json > json-output.json # Stage용 임시 환경에 배포 및 json 파일 추출
+                    netlify status
+                    netlify deploy --dir=build --json > json-output.json # Stage용 임시 환경에 배포 및 json 파일 추출
                     CI_ENVIRONMENT_URL=$(node_modules/.bin/node-jq -r '.deploy_url' json-output.json) # 추출한 json 파일의 deploy_url의 value 출력
                     npx playwright test --reporter=html # E2E Test 수행
                 '''
@@ -126,7 +131,7 @@ pipeline {
         stage('Deploy to Prod and E2E'){
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.52.0-noble'
+                    image 'my-node-playwright'
                     reuseNode true
                 }
             }
@@ -139,11 +144,10 @@ pipeline {
                 echo 'Test stage'
                 sh '''
                     node --version
-                    npm install netlify-cli@20.1.1
-                    node_modules/.bin/netlify --version
+                    netlify --version
                     echo "Deploying to production. Site ID : $NETLIFY_SITE_ID"
-                    node_modules/.bin/netlify status
-                    node_modules/.bin/netlify deploy --dir=build --prod # Prod 환경의 build 디렉토리에 배포
+                    netlify status
+                    netlify deploy --dir=build --prod # Prod 환경의 build 디렉토리에 배포
                     npx playwright test --reporter=html # E2E Test 수행
                 '''
             }
