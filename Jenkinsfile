@@ -62,15 +62,14 @@ pipeline {
                 stage('E2E'){
                     agent {
                         docker {
-                            image 'mcr.microsoft.com/playwright:v1.52.0-noble'
+                            image 'my-node-playwright'
                             reuseNode true
                         }
                     }
                     steps{
                         echo 'Test stage'
                         sh '''
-                            npm install serve
-                            node_modules/.bin/serve -s build &
+                            serve -s build &
                             sleep 10 # 앞선 빌드가 완료될 때까지 대기하는 시간
                             npx playwright test --reporter=html # E2E Test 수행
                         '''
@@ -93,11 +92,10 @@ pipeline {
                     reuseNode true
                 }
             }
-            // E2E 테스트를 수행할 URL 환경 변수
+            // E2E 테스트를 수행할 URL 환경 변수, environment 블록으로 사전 선언해야 playwright가 인식
             environment{
                 CI_ENVIRONMENT_URL = "my-stage-url"
             }
-
 
             steps{
                 echo 'Test stage'
