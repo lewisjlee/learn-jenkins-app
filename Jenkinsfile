@@ -5,30 +5,11 @@ pipeline {
         NETLIFY_SITE_ID = '1fff8fc0-39ca-457a-95ae-91081bc6a1a8' // netlify 사이트 아이디를 저장하는 로컬 환경 변수
         NETLIFY_AUTH_TOKEN = credentials('netlify-token')
         REACT_APP_VERSION = "1.0.$BUILD_ID" // https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
+        AWS_S3_BUCKET = 'learn-jenkins-lewisjlee-20250702'
     }
 
     // 애플리케이션 빌드
     stages {
-        stage('AWS'){
-            agent {
-                docker {
-                    image 'amazon/aws-cli'
-                    args "--entrypoint=''"
-                }
-            }
-            environment{
-                AWS_S3_BUCKET = 'learn-jenkins-lewisjlee-20250702'
-            }
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'aws-jenkins', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
-                    sh '''
-                        aws --version
-                        echo "Hello!" > index.html
-                        aws s3 cp index.html s3://$AWS_S3_BUCKET/index.html
-                    '''
-                }           
-            }
-        }
         stage('Build') {
             agent {
                 docker { // 에이전트에 nodejs 컨테이너 실행
@@ -139,7 +120,26 @@ pipeline {
             }
         }
 */
-
+        stage('Deploy to Prod(S3)'){
+            agent {
+                docker {
+                    image 'amazon/aws-cli'
+                    args "--entrypoint=''"
+                    reuseNode true
+                }
+            }
+            environment{
+                AWS_S3_BUCKET = "${env.AWS_S3_BUCKET}"
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'aws-jenkins', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    sh '''
+                        aws --version
+                        aws s3 sync build s3://$AWS_S3_BUCKET
+                    '''
+                }           
+            }
+        }
         // Prod 환경에 배포 및 E2E 테스트
         stage('Deploy to Prod and E2E'){
             agent {
@@ -150,17 +150,13 @@ pipeline {
             }
             // E2E 테스트를 수행할 Prod 환경 URL
             environment{
-                CI_ENVIRONMENT_URL = 'https://fluffy-yeot-2c6d6e.netlify.app'
+                CI_ENVIRONMENT_URL = "http://${env.AWS_S3_BUCKET}.s3-website.ap-northeast-2.amazonaws.com"
             }
 
             steps{
                 echo 'Test stage'
                 sh '''
                     node --version
-                    netlify --version
-                    echo "Deploying to production. Site ID : $NETLIFY_SITE_ID"
-                    netlify status
-                    netlify deploy --dir=build --prod # Prod 환경의 build 디렉토리에 배포
                     npx playwright test --reporter=html # E2E Test 수행
                 '''
             }
