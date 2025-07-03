@@ -141,7 +141,7 @@ pipeline {
             }
         }
         // Prod 환경에 배포 및 E2E 테스트
-        stage('Deploy to Prod and E2E'){
+        stage('Prod E2E'){
             agent {
                 docker {
                     image 'my-node-playwright'
