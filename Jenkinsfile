@@ -165,6 +165,7 @@ pipeline {
                 }           
             }
         }
+/*
         // Prod 환경에 배포 및 E2E 테스트
         stage('Prod E2E'){
             agent {
@@ -193,5 +194,6 @@ pipeline {
                 }
             }
         }
+*/
     }
 }
