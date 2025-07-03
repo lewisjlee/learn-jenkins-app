@@ -4,13 +4,17 @@ pipeline {
     environment {
         NETLIFY_SITE_ID = '1fff8fc0-39ca-457a-95ae-91081bc6a1a8' // netlify 사이트 아이디를 저장하는 로컬 환경 변수
         NETLIFY_AUTH_TOKEN = credentials('netlify-token')
-        REACT_APP_VERSION = "1.0.$BUILD_ID" // https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
         AWS_S3_BUCKET = 'learn-jenkins-lewisjlee-20250702'
+        REACT_APP_VERSION = "1.0.$BUILD_ID" // https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
+        APP_NAME = 'my-app'
+        AWS_ECR = '637423605616.dkr.ecr.ap-northeast-2.amazonaws.com'
+        AWS_DEFAULT_REGION = 'ap-northeast-2'
+        AWS_ECS_CLUSTER_PROD = 'LearnJenkinsApp-Cluster-Prod'
+        AWS_ECS_SERVICE_PROD = 'LearnJenkinsApp-Service-Prod'
+        AWS_ECS_TD_PROD = 'LearnJenkinsApp-TaskDefinition-Prod'
     }
-
-    // 애플리케이션 빌드
     stages {
-        stage('Build') {
+        stage('Local Build') {
             agent {
                 docker { // 에이전트에 nodejs 컨테이너 실행
                     image 'node:18-alpine'
@@ -19,7 +23,6 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "small changes"
                     ls -al
                     node --version
                     npm --version
@@ -29,9 +32,8 @@ pipeline {
                 '''
             }
         }
-
         // local 테스트 병렬 실행
-        stage('Tests'){
+        stage('Local Tests'){
             parallel {
                 stage('Unit test'){
                     agent {
@@ -110,8 +112,8 @@ pipeline {
                 }
             }
         }
-
-/*        // Prod 배포 전 최종 검토 및 승인
+/*
+        // Prod 배포 전 최종 검토 및 승인
         stage('Approval to deploy to Prod'){
             steps{
                 timeout(time: 1, unit: 'HOURS') {
@@ -120,22 +122,45 @@ pipeline {
             }
         }
 */
-        stage('Deploy to Prod(S3)'){
+        // 애플리케이션 이미지 빌드 및 Push
+        stage('Build Docker Image and Push') {
             agent {
                 docker {
-                    image 'amazon/aws-cli'
+                    image 'my-aws-cli'
+                    args "-v /var/run/docker.sock:/var/run/docker.sock --entrypoint=''"
+                    reuseNode true
+                }
+            }
+            steps{
+                withCredentials([usernamePassword(credentialsId: 'aws-jenkins', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    sh '''
+                        docker build -t $AWS_ECR/$APP_NAME:$REACT_APP_VERSION .
+                        aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ECR
+                        docker push $AWS_ECR/$APP_NAME:$REACT_APP_VERSION
+                    '''
+                }
+            }
+        }
+        stage('Deploy to Prod(AWS)'){
+            agent {
+                docker {
+                    image 'my-aws-cli'
                     args "--entrypoint=''"
                     reuseNode true
                 }
             }
-            environment{
+            /* environment{
                 AWS_S3_BUCKET = "${env.AWS_S3_BUCKET}"
-            }
+            } */
             steps {
                 withCredentials([usernamePassword(credentialsId: 'aws-jenkins', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
                     sh '''
                         aws --version
-                        aws s3 sync build s3://$AWS_S3_BUCKET
+                        # aws s3 sync build s3://$AWS_S3_BUCKET
+                        sed -i "s/#APP_VERSION#/$REACT_APP_VERSION/g" aws/task-definition-prod.json
+                        LASTEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json | jq '.taskDefinition.revision')
+                        aws ecs update-service --cluster $AWS_ECS_CLUSTER_PROD --service $AWS_ECS_SERVICE_PROD --task-definition $AWS_ECS_TD_PROD:$LASTEST_TD_REVISION
+                        aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER_PROD --services $AWS_ECS_SERVICE_PROD
                     '''
                 }           
             }
@@ -150,7 +175,8 @@ pipeline {
             }
             // E2E 테스트를 수행할 Prod 환경 URL
             environment{
-                CI_ENVIRONMENT_URL = "http://${env.AWS_S3_BUCKET}.s3-website.ap-northeast-2.amazonaws.com"
+                //CI_ENVIRONMENT_URL = "http://${env.AWS_S3_BUCKET}.s3-website.ap-northeast-2.amazonaws.com"
+                CI_ENVIRONMENT_URL = "http://3.35.23.21:80"
             }
 
             steps{
