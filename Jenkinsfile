@@ -49,6 +49,7 @@ pipeline {
                             npm test # 소스코드 테스트
                         '''
                     }
+                    # JUnit Report 그래프 생성
                     post {
                         always {
                             junit 'junit-results/junit.xml'
